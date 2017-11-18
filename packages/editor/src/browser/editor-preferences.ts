@@ -50,6 +50,101 @@ export const editorPreferenceSchema: PreferenceSchema = {
             "type": "number",
             "default": 500,
             "description": "Configure the auto save delay in milliseconds"
+        },
+        "editor.minimap.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the rendering of the minimap."
+        },
+        "editor.cursorBlinking": {
+            "enum": [
+                "blink", "smooth", "phase", "expand", "solid"
+            ],
+            "default": "blink",
+            "description": "Control the cursor animation style, possible values are 'blink', 'smooth', 'phase', 'expand' and 'solid'."
+        },
+        "editor.cursorStyle": {
+            "enum": [
+                "block", "line"
+            ],
+            "default": "line",
+            "description": "Control the cursor style, either 'block' or 'line'. Defaults to 'line'."
+        },
+        "editor.fontLigatures": {
+            "type": "boolean",
+            "default": "false",
+            "description": "Enable font ligatures. Defaults to false."
+        },
+        "editor.scrollBeyondLastLine": {
+            "type": "boolean",
+            "default": "true",
+            "description": "Enable that scrolling can go one screen size after the last line. Defaults to true."
+        },
+        "editor.wordWrap": {
+            "enum": [
+                'off', 'on', 'wordWrapColumn', 'bounded'
+            ],
+            "default": "off",
+            "description": `Control the wrapping of the editor.
+             When \`wordWrap\` = "off", the lines will never wrap.
+             When \`wordWrap\` = "on", the lines will wrap at the viewport width.
+             When \`wordWrap\` = "wordWrapColumn", the lines will wrap at \`wordWrapColumn\`.
+             When \`wordWrap\` = "bounded", the lines will wrap at min(viewport width, wordWrapColumn).
+             Defaults to "off".`
+        },
+        "editor.wordWrapColumn": {
+            "type": "number",
+            "default": "80",
+            "description": "Control when to wrap in an editor. Defaults to 80."
+        },
+        "editor.wordWrapMinified": {
+            "type": "boolean",
+            "default": "true",
+            "description": "Force word wrapping when the text appears to be of a minified/generated file. Defaults to true."
+        },
+        "editor.wrappingIndent": {
+            "enum": [
+                'none', 'same', 'indent'
+            ],
+            "default": "same",
+            "description": "Defaults to 'same'."
+        },
+        "editor.wordWrapBreakBeforeCharacters": {
+            "tyoe": "string",
+            "default": "{([+",
+            "description": "Configure word wrapping characters. A break will be introduced before these characters. Defaults to '{([+'."
+        },
+        "editor.wordWrapBreakAfterCharacters": {
+            "tyoe": "string",
+            "default": " \t})]?|&,;",
+            "description": "Configure word wrapping characters. A break will be introduced after these characters. Defaults to ' \t})]?|&,;'."
+        },
+        "editor.wordWrapBreakObtrusiveCharacters": {
+            "tyoe": "string",
+            "default": ".",
+            "description": "Configure word wrapping characters. A break will be introduced after these "
+                + "characters only if no `wordWrapBreakBeforeCharacters` or `wordWrapBreakAfterCharacters` were found."
+        },
+        // diff editor options
+        "diffeditor.enableSplitViewResizing": {
+            "type": "boolean",
+            "default": true,
+            "description": "Allow the user to resize the diff editor split view. Defaults to true."
+        },
+        "diffeditor.renderSideBySide": {
+            "type": "boolean",
+            "default": true,
+            "description": "Render the differences in two side-by-side editors. Defaults to true."
+        },
+        "diffeditor.ignoreTrimWhitespace": {
+            "type": "boolean",
+            "default": true,
+            "description": "Compute the diff by ignoring leading/trailing whitespace. Defaults to true."
+        },
+        "diffeditor.renderIndicators": {
+            "type": "boolean",
+            "default": true,
+            "description": "Render +/- indicators for added/deleted changes. Defaults to true."
         }
     }
 };
