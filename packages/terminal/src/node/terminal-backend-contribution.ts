@@ -5,7 +5,7 @@
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import * as http from 'http';
+import * as https from 'https';
 import { injectable, inject } from 'inversify';
 import URI from "@theia/core/lib/common/uri";
 import { ILogger } from "@theia/core/lib/common";
@@ -21,7 +21,7 @@ export class TerminalBackendContribution implements BackendApplicationContributi
         @inject(ILogger) protected readonly logger: ILogger) {
     }
 
-    onStart(server: http.Server): void {
+    onStart(server: https.Server): void {
         openSocket({
             server,
             matches: request => {

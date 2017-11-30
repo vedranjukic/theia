@@ -12,7 +12,7 @@ import { testContainer } from './test/inversify.spec-config';
 import { BackendApplication } from '@theia/core/lib/node/backend-application';
 import { IShellTerminalServer } from '../common/shell-terminal-protocol';
 import * as ws from 'ws';
-import * as http from 'http';
+import * as https from 'https';
 
 chai.use(chaiAsPromised);
 
@@ -25,7 +25,7 @@ const expect = chai.expect;
 describe('Terminal Backend Contribution', function () {
 
     this.timeout(10000);
-    let server: http.Server;
+    let server: https.Server;
     let shellTerminalServer: IShellTerminalServer;
 
     before(async function () {

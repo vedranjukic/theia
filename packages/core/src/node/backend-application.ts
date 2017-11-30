@@ -5,7 +5,7 @@
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import * as http from 'http';
+import * as https from 'https';
 import * as express from 'express';
 import * as yargs from 'yargs';
 import { inject, named, injectable } from "inversify";
@@ -13,12 +13,13 @@ import { ILogger, ContributionProvider } from '../common';
 import { CliContribution } from './cli';
 import { Deferred } from '../common/promise-util';
 import { BackendProcess } from './backend-process';
+import * as fs from 'fs';
 
 export const BackendApplicationContribution = Symbol("BackendApplicationContribution");
 export interface BackendApplicationContribution {
     initialize?(): void;
     configure?(app: express.Application): void;
-    onStart?(server: http.Server): void;
+    onStart?(server: https.Server): void;
 
     /**
      * Called when the backend application shuts down. Contributions must perform only synchronous operations.
@@ -102,15 +103,17 @@ export class BackendApplication {
         this.app.use(...handlers);
     }
 
-    async start(aPort?: number, aHostname?: string): Promise<http.Server> {
-        const deferred = new Deferred<http.Server>();
-        let server: http.Server;
+    async start(aPort?: number, aHostname?: string): Promise<https.Server> {
+        const deferred = new Deferred<https.Server>();
         const port = aPort !== undefined ? aPort : this.cliParams.port;
         const hostname = aHostname !== undefined ? aHostname : this.cliParams.hostname;
-        server = this.app.listen(port, hostname!, () => {
-            this.logger.info(`Theia app listening on http://${hostname || 'localhost'}:${server.address().port}.`);
-            deferred.resolve(server);
-        });
+
+        const options = {
+            key: fs.readFileSync('../../test-certificate.key'),
+            cert: fs.readFileSync('../../test-certificate.crt')
+        };
+
+        const server: https.Server = https.createServer(options, this.app);
 
         /* Allow any number of websocket servers.  */
         server.setMaxListeners(0);
@@ -124,6 +127,13 @@ export class BackendApplication {
                 }
             }
         }
+
+        server.listen(port, hostname, () => {
+            this.logger.info(`Theia app listening on http://${hostname || 'localhost'}:${server.address().port}.`);
+
+            deferred.resolve(server);
+        });
+
         return deferred.promise;
     }
 

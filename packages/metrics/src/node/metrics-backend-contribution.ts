@@ -6,7 +6,7 @@
  */
 
 import { injectable, inject } from 'inversify';
-import * as http from 'http';
+import * as https from 'https';
 import * as express from 'express';
 import { ILogger } from "@theia/core/lib/common";
 import { BackendApplicationContribution } from '@theia/core/lib/node';
@@ -24,7 +24,7 @@ export class MetricsBackendContribution implements BackendApplicationContributio
         });
     }
 
-    onStart(server: http.Server): void {
+    onStart(server: https.Server): void {
         const collectDefaultMetrics = prom.collectDefaultMetrics;
 
         // Probe every 5th second.

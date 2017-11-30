@@ -5,7 +5,7 @@
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import * as http from 'http';
+import * as https from 'https';
 import { ContainerModule, injectable, inject, named } from "inversify";
 import { bindContributionProvider, ContributionProvider, ConnectionHandler } from '../../common';
 import { BackendApplicationContribution } from "../backend-application";
@@ -22,7 +22,7 @@ export class MessagingContribution implements BackendApplicationContribution {
     constructor( @inject(ContributionProvider) @named(ConnectionHandler) protected readonly handlers: ContributionProvider<ConnectionHandler>) {
     }
 
-    onStart(server: http.Server): void {
+    onStart(server: https.Server): void {
         for (const handler of this.handlers.getContributions()) {
             const path = handler.path;
             try {

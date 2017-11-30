@@ -6,7 +6,7 @@
  */
 
 import * as ws from "ws";
-import * as http from "http";
+import * as https from "https";
 import * as url from "url";
 import * as net from "net";
 import { MessageConnection } from "vscode-jsonrpc";
@@ -14,9 +14,9 @@ import { createWebSocketConnection, IWebSocket } from "vscode-ws-jsonrpc";
 import { ConsoleLogger } from "./logger";
 
 export interface IServerOptions {
-    readonly server: http.Server;
+    readonly server: https.Server;
     readonly path?: string;
-    matches?(request: http.IncomingMessage): boolean;
+    matches?(request: https.IncomingMessage): boolean;
 }
 
 export function createServerWebSocketConnection(options: IServerOptions, onConnect: (connection: MessageConnection) => void): void {
@@ -35,7 +35,7 @@ export function openJsonRpcSocket(options: IServerOptions, onOpen: (socket: IWeb
 }
 
 export interface OnOpen {
-    (webSocket: ws, request: http.IncomingMessage, socket: net.Socket, head: Buffer): void;
+    (webSocket: ws, request: https.IncomingMessage, socket: net.Socket, head: Buffer): void;
 }
 
 export function openSocket(options: IServerOptions, onOpen: OnOpen): void {
@@ -43,7 +43,7 @@ export function openSocket(options: IServerOptions, onOpen: OnOpen): void {
         noServer: true,
         perMessageDeflate: false
     });
-    options.server.on('upgrade', (request: http.IncomingMessage, socket: net.Socket, head: Buffer) => {
+    options.server.on('upgrade', (request: https.IncomingMessage, socket: net.Socket, head: Buffer) => {
         const pathname = request.url ? url.parse(request.url).pathname : undefined;
         if (options.path && pathname === options.path || options.matches && options.matches(request)) {
             wss.handleUpgrade(request, socket, head, webSocket => {
