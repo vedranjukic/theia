@@ -9,17 +9,22 @@ import * as path from 'path';
 import * as temp from 'temp';
 import * as fs from 'fs-extra';
 import { expect } from 'chai';
-import { Container } from 'inversify';
+import { Container, interfaces, injectable } from 'inversify';
 import { DugiteGit } from './dugite-git';
 import { git as gitExec } from 'dugite-extra/lib/core/git';
 import { FileUri } from '@theia/core/lib/node/file-uri';
 import { WorkingDirectoryStatus, Repository, GitUtils, GitFileStatus } from '../common';
 import { initRepository, createTestRepository } from 'dugite-extra/lib/command/test-helper';
-import { WorkspaceServer } from '@theia/workspace/lib/common/workspace-protocol';
 import { bindGit } from './git-backend-module';
 import { bindLogger } from '@theia/core/lib/node/logger-backend-module';
 import { ILoggerServer } from '@theia/core/lib/common/logger-protocol';
 import { ConsoleLoggerServer } from '@theia/core/lib/common/console-logger-server';
+import { GitRepositoryManager } from './git-repository-manager';
+import { GitRepositoryWatcher } from './git-repository-watcher';
+import { Disposable, Event, Emitter } from '@theia/core';
+import { GitStatusChangeEvent } from "../common/git-watcher";
+
+// tslint:disable:no-unused-expression
 
 const track = temp.track();
 
@@ -43,9 +48,8 @@ describe('git', async function () {
             await initRepository(path.join(root, 'B'));
             await initRepository(path.join(root, 'C'));
             const git = await createGit();
-            const workspace = await createWorkspace(root);
-            const workspaceRootUri = await workspace.getRoot();
-            const repositories = await git.repositories(workspaceRootUri!, { maxCount: 1 });
+            const workspaceRootUri = FileUri.create(root).toString();
+            const repositories = await git.repositories(workspaceRootUri, { maxCount: 1 });
             expect(repositories.length).to.deep.equal(1);
 
         });
@@ -60,9 +64,8 @@ describe('git', async function () {
             await initRepository(path.join(root, 'B'));
             await initRepository(path.join(root, 'C'));
             const git = await createGit();
-            const workspace = await createWorkspace(root);
-            const workspaceRootUri = await workspace.getRoot();
-            const repositories = await git.repositories(workspaceRootUri!, {});
+            const workspaceRootUri = FileUri.create(root).toString();
+            const repositories = await git.repositories(workspaceRootUri, {});
             expect(repositories.map(r => path.basename(FileUri.fsPath(r.localUri))).sort()).to.deep.equal(['A', 'B', 'C']);
 
         });
@@ -79,9 +82,8 @@ describe('git', async function () {
             await initRepository(path.join(root, 'BASE', 'B'));
             await initRepository(path.join(root, 'BASE', 'C'));
             const git = await createGit();
-            const workspace = await createWorkspace(path.join(root, 'BASE'));
-            const workspaceRootUri = await workspace.getRoot();
-            const repositories = await git.repositories(workspaceRootUri!, {});
+            const workspaceRootUri = FileUri.create(path.join(root, 'BASE')).toString();
+            const repositories = await git.repositories(workspaceRootUri, {});
             expect(repositories.map(r => path.basename(FileUri.fsPath(r.localUri))).sort()).to.deep.equal(['A', 'B', 'BASE', 'C']);
 
         });
@@ -99,9 +101,8 @@ describe('git', async function () {
             await initRepository(path.join(root, 'BASE', 'WS_ROOT', 'B'));
             await initRepository(path.join(root, 'BASE', 'WS_ROOT', 'C'));
             const git = await createGit();
-            const workspace = await createWorkspace(path.join(root, 'BASE', 'WS_ROOT'));
-            const workspaceRootUri = await workspace.getRoot();
-            const repositories = await git.repositories(workspaceRootUri!, {});
+            const workspaceRootUri = FileUri.create(path.join(root, 'BASE', 'WS_ROOT')).toString();
+            const repositories = await git.repositories(workspaceRootUri, {});
             const repositoryNames = repositories.map(r => path.basename(FileUri.fsPath(r.localUri)));
             expect(repositoryNames.shift()).to.equal('BASE'); // The first must be the container repository.
             expect(repositoryNames.sort()).to.deep.equal(['A', 'B', 'C']);
@@ -118,7 +119,7 @@ describe('git', async function () {
             const root = await createTestRepository(track.mkdirSync('status-test'));
             const localUri = FileUri.create(root).toString();
             const repository = { localUri };
-            const git = await createGit(root);
+            const git = await createGit();
 
             // // Check status. Expect empty.
             let status = await git.status(repository);
@@ -210,7 +211,7 @@ describe('git', async function () {
             const root = await createTestRepository(track.mkdirSync('status-test'));
             const localUri = FileUri.create(root).toString();
             repository = { localUri };
-            git = await createGit(root);
+            git = await createGit();
         });
 
         it('modified in working directory', async () => {
@@ -299,11 +300,10 @@ describe('git', async function () {
             expect(result.stdout.trim().replace(/^git version /, '').startsWith('2')).to.be.true;
             expect(result.stderr.trim()).to.be.empty;
             expect(result.exitCode).to.be.equal(0);
-
         });
 
         it('config', async () => {
-            const root = track.mkdirSync('exec-foo');
+            const root = track.mkdirSync('exec-config');
             const localUri = FileUri.create(root).toString();
             await initRepository(root);
 
@@ -342,25 +342,54 @@ describe('git', async function () {
 
 });
 
-async function createGit(fsRoot: string = ''): Promise<DugiteGit> {
+async function createGit(): Promise<DugiteGit> {
     const container = new Container();
     const bind = container.bind.bind(container);
     bindLogger(bind);
     container.rebind(ILoggerServer).to(ConsoleLoggerServer).inSingletonScope();
-    bindGit(bind);
+    bindGit(bind, {
+        bindManager(binding: interfaces.BindingToSyntax<{}>): interfaces.BindingWhenOnSyntax<{}> {
+            return binding.to(TestGitRepositoryManager).inSingletonScope();
+        },
+        bindWatcher(binding: interfaces.BindingToSyntax<{}>): interfaces.BindingWhenOnSyntax<{}> {
+            return binding.to(TestRepositoryWatcher);
+        }
+    });
     return container.get(DugiteGit);
 }
 
-async function createWorkspace(fsRoot: string): Promise<WorkspaceServer> {
-    return {
+@injectable()
+class TestGitRepositoryManager implements GitRepositoryManager {
 
-        async getRoot(): Promise<string | undefined> {
-            return FileUri.create(fsRoot).toString();
-        },
+    private watchers = new Map<Repository, GitRepositoryWatcher>();
 
-        async setRoot(uri: string): Promise<void> {
-            // NOOP
+    async run<T>(repository: Repository, op: () => Promise<T>): Promise<T> {
+        return await op();
+    }
+
+    getWatcher(repository: Repository): GitRepositoryWatcher {
+        let watcher = this.watchers.get(repository);
+        if (watcher === undefined) {
+            watcher = new TestRepositoryWatcher();
+            this.watchers.set(repository, watcher);
         }
+        return watcher;
+    }
 
-    };
+}
+
+@injectable()
+class TestRepositoryWatcher implements GitRepositoryWatcher {
+
+    private readonly onStatusChangedEmitter = new Emitter<GitStatusChangeEvent>();
+    readonly onStatusChanged: Event<GitStatusChangeEvent> = this.onStatusChangedEmitter.event;
+
+    sync(): Promise<void> {
+        return Promise.resolve();
+    }
+
+    watch(): Disposable {
+        return Disposable.create(() => { /* NOOP */ });
+    }
+
 }
