@@ -7,4 +7,4 @@ containers:
     image: mysql
     environment:
       - 'MYSQL_ALLOW_EMPTY_PASSWORD=true'
-init: 'npm i'
+init: 'yarn'
