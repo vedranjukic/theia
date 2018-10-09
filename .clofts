@@ -1,0 +1,8 @@
+containers:
+  runtime:
+    previewPort: 3000
+    environment: 
+      - 'RUN_INIT_WORKSPACE=1'
+  db:
+    image: mysql
+init: 'npm i'
