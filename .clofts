@@ -5,4 +5,6 @@ containers:
       - 'RUN_INIT_WORKSPACE=1'
   db:
     image: mysql
+    environment:
+      - 'MYSQL_ALLOW_EMPTY_PASSWORD=true'
 init: 'npm i'
