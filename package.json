@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "parent",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "engines": {
     "yarn": "1.0.x || >=1.2.1",
     "node": ">=7.9.0"
